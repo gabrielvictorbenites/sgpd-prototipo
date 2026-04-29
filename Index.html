@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SGPD — Protótipo Navegável</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --bg:#F4F6FB;--surface:#FFFFFF;--primary:#2563EB;--primary-dark:#1D4ED8;
+    --primary-light:#EFF6FF;--accent:#0EA5E9;--success:#16A34A;--success-bg:#F0FDF4;
+    --warning:#D97706;--warning-bg:#FFFBEB;--danger:#DC2626;--danger-bg:#FEF2F2;
+    --text:#0F172A;--text2:#475569;--text3:#94A3B8;--border:#E2E8F0;
+    --radius:12px;--shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+    --shadow-lg:0 8px 32px rgba(37,99,235,.12);
+  }
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  .screen{display:none;min-height:100vh;animation:fadeIn .25s ease;}
+  .screen.active{display:flex;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .navbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  .nav-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.05rem;color:var(--primary);}
+  .nav-brand .logo{width:32px;height:32px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;font-weight:700;}
+  .nav-user{display:flex;align-items:center;gap:12px;font-size:.875rem;color:var(--text2);}
+  .nav-avatar{width:34px;height:34px;border-radius:50%;background:var(--primary-light);border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:var(--primary);}
+  .nav-btn{background:none;border:none;cursor:pointer;color:var(--text2);font-size:.8rem;font-family:inherit;padding:6px 10px;border-radius:6px;transition:background .15s;}
+  .nav-btn:hover{background:var(--bg);}
+  .layout{display:flex;flex:1;}
+  .sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;gap:2px;min-height:calc(100vh - 60px);}
+  .sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:.875rem;color:var(--text2);cursor:pointer;border-left:3px solid transparent;transition:all .15s;}
+  .sidebar-item:hover{background:var(--bg);color:var(--text);}
+  .sidebar-item.active{background:var(--primary-light);color:var(--primary);border-left-color:var(--primary);font-weight:600;}
+  .sidebar-icon{font-size:1rem;width:20px;text-align:center;}
+  .main{flex:1;padding:32px;overflow:auto;}
+  .card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:24px;box-shadow:var(--shadow);}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+  .stat-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:20px;box-shadow:var(--shadow);}
+  .stat-label{font-size:.75rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+  .stat-value{font-size:1.75rem;font-weight:700;color:var(--text);}
+  .stat-sub{font-size:.75rem;color:var(--text3);margin-top:4px;}
+  .stat-icon{font-size:1.4rem;margin-bottom:8px;}
+  table{width:100%;border-collapse:collapse;font-size:.875rem;}
+  th{text-align:left;padding:10px 14px;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);border-bottom:2px solid var(--border);}
+  td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text2);}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:#FAFBFF;}
+  .td-bold{font-weight:600;color:var(--text);}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:.72rem;font-weight:600;}
+  .badge-blue{background:#EFF6FF;color:#1D4ED8;}
+  .badge-yellow{background:#FFFBEB;color:#92400E;}
+  .badge-green{background:#F0FDF4;color:#15803D;}
+  .badge-red{background:#FEF2F2;color:#B91C1C;}
+  .badge-gray{background:#F1F5F9;color:#475569;}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-family:inherit;font-size:.875rem;font-weight:600;cursor:pointer;border:none;transition:all .15s;}
+  .btn-primary{background:var(--primary);color:#fff;}
+  .btn-primary:hover{background:var(--primary-dark);box-shadow:var(--shadow-lg);}
+  .btn-outline{background:transparent;color:var(--primary);border:1.5px solid var(--primary);}
+  .btn-outline:hover{background:var(--primary-light);}
+  .btn-ghost{background:transparent;color:var(--text2);border:1.5px solid var(--border);}
+  .btn-ghost:hover{background:var(--bg);}
+  .btn-success{background:var(--success);color:#fff;}
+  .btn-success:hover{background:#15803D;}
+  .btn-sm{padding:6px 12px;font-size:.8rem;}
+  .form-group{margin-bottom:18px;}
+  label{display:block;font-size:.8rem;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;}
+  input,select,textarea{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:.9rem;color:var(--text);background:var(--surface);transition:border .15s;}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+  textarea{resize:vertical;min-height:90px;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .form-hint{font-size:.75rem;color:var(--text3);margin-top:4px;}
+  .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+  .page-title{font-size:1.35rem;font-weight:700;color:var(--text);}
+  .page-sub{font-size:.85rem;color:var(--text3);margin-top:2px;}
+  #screen-login{align-items:center;justify-content:center;background:linear-gradient(135deg,#1e3a8a 0%,#1D4ED8 50%,#0EA5E9 100%);flex-direction:column;}
+  .login-box{background:var(--surface);border-radius:16px;padding:40px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+  .login-logo{text-align:center;margin-bottom:28px;}
+  .login-logo .badge-logo{width:56px;height:56px;background:var(--primary);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:#fff;margin-bottom:12px;}
+  .login-logo h1{font-size:1.2rem;font-weight:700;color:var(--text);}
+  .login-logo p{font-size:.8rem;color:var(--text3);margin-top:2px;}
+  .confirm-box{text-align:center;padding:40px 20px;}
+  .confirm-icon{font-size:3.5rem;margin-bottom:16px;}
+  .confirm-protocol{font-family:'DM Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--primary);background:var(--primary-light);border:2px dashed var(--primary);border-radius:10px;padding:14px 28px;display:inline-block;margin:16px 0;}
+  .timeline{display:flex;flex-direction:column;gap:0;}
+  .timeline-item{display:flex;gap:14px;padding:12px 0;position:relative;}
+  .timeline-dot{width:12px;height:12px;border-radius:50%;background:var(--primary);border:2px solid var(--primary-light);margin-top:4px;flex-shrink:0;}
+  .timeline-line{position:absolute;left:5px;top:20px;width:2px;height:calc(100% - 4px);background:var(--border);}
+  .timeline-item:last-child .timeline-line{display:none;}
+  .section-title{font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--border);}
+  .breadcrumb{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--text3);margin-bottom:20px;}
+  .breadcrumb span{color:var(--text2);}
+  .breadcrumb .sep{color:var(--text3);}
+  .screen-nav{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;border-radius:10px;padding:8px 14px;font-size:.75rem;font-family:'DM Mono',monospace;z-index:999;opacity:.7;}
+</style>
+</head>
+<body>
+
+<!-- TELA 1: LOGIN -->
+<div id="screen-login" class="screen active">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="badge-logo">SG</div>
+      <h1>SGPD</h1>
+      <p>Sistema de Gestão de Processos Digitais</p>
+    </div>
+    <div class="form-group">
+      <label>E-mail corporativo</label>
+      <input type="email" value="joao.silva@empresa.com.br"/>
+    </div>
+    <div class="form-group">
+      <label>Senha</label>
+      <input type="password" value="••••••••"/>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;" onclick="go('screen-dashboard-colab')">
+      Entrar no sistema
+    </button>
+    <p style="text-align:center;font-size:.78rem;color:var(--text3);margin-top:16px;">Acesso restrito a colaboradores autorizados</p>
+  </div>
+  <p style="color:rgba(255,255,255,.5);font-size:.75rem;margin-top:20px;">© 2025 SGPD · v1.0</p>
+</div>
+
+<!-- TELA 2: DASHBOARD COLABORADOR -->
+<div id="screen-dashboard-colab" class="screen" style="flex-direction:column;">
+  <div class="navbar">
+    <div class="nav-brand"><div class="logo">SG</div>SGPD</div>
+    <div class="nav-user">
+      <div class="nav-avatar">JS</div>
+      <span>João Silva · Colaborador</span>
+      <button class="nav-btn" onclick="go('screen-login')">Sair</button>
+    </div>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sidebar-item active"><span class="sidebar-icon">🏠</span>Dashboard</div>
+      <div class="sidebar-item" onclick="go('screen-form-solicitacao')"><span class="sidebar-icon">➕</span>Nova Solicitação</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📋</span>Minhas Solicitações</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🔔</span>Notificações <span class="badge badge-blue" style="margin-left:auto">3</span></div>
+      <div class="sidebar-item" style="margin-top:auto"><span class="sidebar-icon">⚙️</span>Configurações</div>
+    </div>
+    <div class="main">
+      <div class="page-header">
+        <div><div class="page-title">Bom dia, João 👋</div><div class="page-sub">Resumo das suas demandas</div></div>
+        <button class="btn btn-primary" onclick="go('screen-form-solicitacao')">➕ Nova Solicitação</button>
+      </div>
+      <div class="stats">
+        <div class="stat-card"><div class="stat-icon">📂</div><div class="stat-label">Total</div><div class="stat-value">12</div><div class="stat-sub">solicitações abertas</div></div>
+        <div class="stat-card"><div class="stat-icon">🔄</div><div class="stat-label">Em andamento</div><div class="stat-value" style="color:var(--primary)">5</div><div class="stat-sub">sendo processadas</div></div>
+        <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-label">Pendentes</div><div class="stat-value" style="color:var(--warning)">4</div><div class="stat-sub">aguardando ação</div></div>
+        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-label">Concluídas</div><div class="stat-value" style="color:var(--success)">3</div><div class="stat-sub">este mês</div></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Solicitações Recentes</div>
+        <table>
+          <thead><tr><th>Protocolo</th><th>Tipo</th><th>Setor</th><th>Data</th><th>Status</th><th>Ação</th></tr></thead>
+          <tbody>
+            <tr><td class="td-bold" style="font-family:'DM Mono',monospace">#2025-0042</td><td>Suporte TI</td><td>T.I.</td><td>24/06/2025</td><td><span class="badge badge-blue">Em andamento</span></td><td><button class="btn btn-ghost btn-sm">Ver</button></td></tr>
+            <tr><td class="td-bold" style="font-family:'DM Mono',monospace">#2025-0039</td><td>RH</td><td>Recursos Humanos</td><td>20/06/2025</td><td><span class="badge badge-yellow">Pendente</span></td><td><button class="btn btn-ghost btn-sm">Ver</button></td></tr>
+            <tr><td class="td-bold" style="font-family:'DM Mono',monospace">#2025-0031</td><td>Financeiro</td><td>Financeiro</td><td>10/06/2025</td><td><span class="badge badge-green">Concluída</span></td><td><button class="btn btn-ghost btn-sm">Ver</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TELA 3: FORMULÁRIO NOVA SOLICITAÇÃO -->
+<div id="screen-form-solicitacao" class="screen" style="flex-direction:column;">
+  <div class="navbar">
+    <div class="nav-brand"><div class="logo">SG</div>SGPD</div>
+    <div class="nav-user"><div class="nav-avatar">JS</div><span>João Silva · Colaborador</span></div>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sidebar-item" onclick="go('screen-dashboard-colab')"><span class="sidebar-icon">🏠</span>Dashboard</div>
+      <div class="sidebar-item active"><span class="sidebar-icon">➕</span>Nova Solicitação</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📋</span>Minhas Solicitações</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🔔</span>Notificações</div>
+    </div>
+    <div class="main">
+      <div class="breadcrumb"><span onclick="go('screen-dashboard-colab')" style="cursor:pointer;color:var(--primary)">Dashboard</span><span class="sep">›</span><span>Nova Solicitação</span></div>
+      <div class="page-header">
+        <div><div class="page-title">Registrar Nova Solicitação</div><div class="page-sub">Preencha todos os campos obrigatórios</div></div>
+      </div>
+      <div class="card" style="max-width:680px;">
+        <div class="section-title">Dados da Solicitação</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tipo de Demanda *</label>
+            <select><option selected>Suporte T.I.</option><option>Recursos Humanos</option><option>Financeiro</option><option>Infraestrutura</option></select>
+          </div>
+          <div class="form-group">
+            <label>Urgência *</label>
+            <select><option>Normal</option><option>Alta</option><option selected>Crítica</option></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Título da Solicitação *</label>
+          <input type="text" value="Problema de acesso ao sistema de ponto eletrônico"/>
+        </div>
+        <div class="form-group">
+          <label>Descrição detalhada *</label>
+          <textarea>Desde ontem não consigo acessar o sistema de ponto eletrônico. O erro exibido é "Credenciais inválidas" mesmo após redefinição de senha.</textarea>
+          <div class="form-hint">Mínimo 50 caracteres. Seja específico para agilizar o atendimento.</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Prazo desejado</label><input type="date" value="2025-07-01"/></div>
+          <div class="form-group"><label>Setor solicitante</label><input type="text" value="Administrativo" disabled style="background:var(--bg)"/></div>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:8px;">
+          <button class="btn btn-ghost" onclick="go('screen-dashboard-colab')">Cancelar</button>
+          <button class="btn btn-primary" onclick="go('screen-confirma-protocolo')">✓ Enviar Solicitação</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TELA 4: CONFIRMAÇÃO DE PROTOCOLO -->
+<div id="screen-confirma-protocolo" class="screen" style="flex-direction:column;">
+  <div class="navbar">
+    <div class="nav-brand"><div class="logo">SG</div>SGPD</div>
+    <div class="nav-user"><div class="nav-avatar">JS</div><span>João Silva · Colaborador</span></div>
+  </div>
+  <div class="main" style="display:flex;align-items:center;justify-content:center;">
+    <div class="card" style="max-width:520px;width:100%;">
+      <div class="confirm-box">
+        <div class="confirm-icon">🎉</div>
+        <h2 style="font-size:1.3rem;font-weight:700;">Solicitação Registrada!</h2>
+        <p style="color:var(--text2);margin-top:8px;font-size:.9rem">Seu protocolo foi gerado. Guarde-o para acompanhamento.</p>
+        <div class="confirm-protocol">#2025-0043</div>
+        <div style="background:var(--bg);border-radius:10px;padding:16px;text-align:left;margin:16px 0;">
+          <div class="section-title">Resumo</div>
+          <div class="timeline">
+            <div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-line"></div><div><strong style="font-size:.85rem">Tipo:</strong> <span style="font-size:.85rem;color:var(--text2)">Suporte T.I. · Urgência Crítica</span></div></div>
+            <div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-line"></div><div><strong style="font-size:.85rem">Atribuído a:</strong> <span style="font-size:.85rem;color:var(--text2)">Maria Santos — Setor T.I.</span></div></div>
+            <div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-line"></div><div><strong style="font-size:.85rem">Prazo:</strong> <span style="font-size:.85rem;color:var(--text2)">01/07/2025</span></div></div>
+            <div class="timeline-item"><div class="timeline-dot" style="background:var(--success)"></div><div><strong style="font-size:.85rem">Notificação:</strong> <span style="font-size:.85rem;color:var(--success)">Enviada ao responsável ✓</span></div></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <button class="btn btn-ghost" onclick="go('screen-dashboard-colab')">Voltar ao início</button>
+          <button class="btn btn-primary" onclick="go('screen-form-solicitacao')">Nova Solicitação</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TELA 5: DASHBOARD RESPONSÁVEL -->
+<div id="screen-dashboard-resp" class="screen" style="flex-direction:column;">
+  <div class="navbar">
+    <div class="nav-brand"><div class="logo">SG</div>SGPD</div>
+    <div class="nav-user">
+      <div class="nav-avatar" style="background:#FEF3C7;border-color:var(--warning);color:#92400E">MS</div>
+      <span>Maria Santos · Responsável — T.I.</span>
+      <button class="nav-btn" onclick="go('screen-login')">Sair</button>
+    </div>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sidebar-item active"><span class="sidebar-icon">🏠</span>Dashboard</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📥</span>Fila de Demandas <span class="badge badge-yellow" style="margin-left:auto">7</span></div>
+      <div class="sidebar-item"><span class="sidebar-icon">✅</span>Concluídas</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📊</span>Relatórios</div>
+    </div>
+    <div class="main">
+      <div class="page-header">
+        <div><div class="page-title">Fila de Demandas — T.I.</div><div class="page-sub">Solicitações atribuídas ao seu setor</div></div>
+      </div>
+      <div class="stats">
+        <div class="stat-card"><div class="stat-icon">📥</div><div class="stat-label">Atribuídas</div><div class="stat-value">7</div></div>
+        <div class="stat-card"><div class="stat-icon">🔄</div><div class="stat-label">Em andamento</div><div class="stat-value" style="color:var(--primary)">3</div></div>
+        <div class="stat-card"><div class="stat-icon">🚨</div><div class="stat-label">Críticas</div><div class="stat-value" style="color:var(--danger)">2</div></div>
+        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-label">Concluídas hoje</div><div class="stat-value" style="color:var(--success)">1</div></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Solicitações Pendentes</div>
+        <table>
+          <thead><tr><th>Protocolo</th><th>Título</th><th>Solicitante</th><th>Urgência</th><th>Prazo</th><th>Status</th><th>Ação</th></tr></thead>
+          <tbody>
+            <tr><td class="td-bold" style="font-family:'DM Mono',monospace">#2025-0043</td><td>Acesso ponto eletrônico</td><td>João Silva</td><td><span class="badge badge-red">Crítica</span></td><td>01/07/2025</td><td><span class="badge badge-gray">Aberta</span></td><td><button class="btn btn-primary btn-sm" onclick="go('screen-atualiza-status')">Atualizar</button></td></tr>
+            <tr><td class="td-bold" style="font-family:'DM Mono',monospace">#2025-0041</td><td>Instalação de software</td><td>Ana Costa</td><td><span class="badge badge-yellow">Alta</span></td><td>28/06/2025</td><td><span class="badge badge-blue">Em andamento</span></td><td><button class="btn btn-ghost btn-sm">Ver</button></td></tr>
+            <tr><td class="td-bold" style="font-family:'DM Mono',monospace">#2025-0038</td><td>Configuração VPN</td><td>Carlos Melo</td><td><span class="badge badge-gray">Normal</span></td><td>05/07/2025</td><td><span class="badge badge-yellow">Pendente</span></td><td><button class="btn btn-ghost btn-sm">Ver</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TELA 6: ATUALIZAR STATUS -->
+<div id="screen-atualiza-status" class="screen" style="flex-direction:column;">
+  <div class="navbar">
+    <div class="nav-brand"><div class="logo">SG</div>SGPD</div>
+    <div class="nav-user">
+      <div class="nav-avatar" style="background:#FEF3C7;border-color:var(--warning);color:#92400E">MS</div>
+      <span>Maria Santos · Responsável — T.I.</span>
+    </div>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sidebar-item" onclick="go('screen-dashboard-resp')"><span class="sidebar-icon">🏠</span>Dashboard</div>
+      <div class="sidebar-item active"><span class="sidebar-icon">📥</span>Fila de Demandas</div>
+      <div class="sidebar-item"><span class="sidebar-icon">✅</span>Concluídas</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📊</span>Relatórios</div>
+    </div>
+    <div class="main">
+      <div class="breadcrumb"><span onclick="go('screen-dashboard-resp')" style="cursor:pointer;color:var(--primary)">Dashboard</span><span class="sep">›</span><span>Atualizar Status</span></div>
+      <div class="page-header">
+        <div><div class="page-title">Atualizar Status da Solicitação</div><div class="page-sub">Protocolo #2025-0043</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:800px;">
+        <div class="card">
+          <div class="section-title">Detalhes da Solicitação</div>
+          <div style="display:flex;flex-direction:column;gap:12px;font-size:.875rem;">
+            <div><span style="color:var(--text3);font-size:.75rem;text-transform:uppercase">Protocolo</span><div style="font-family:'DM Mono',monospace;font-weight:700;color:var(--primary)">#2025-0043</div></div>
+            <div><span style="color:var(--text3);font-size:.75rem;text-transform:uppercase">Solicitante</span><div style="font-weight:600">João Silva</div></div>
+            <div><span style="color:var(--text3);font-size:.75rem;text-transform:uppercase">Tipo</span><div>Suporte T.I.</div></div>
+            <div><span style="color:var(--text3);font-size:.75rem;text-transform:uppercase">Urgência</span><div><span class="badge badge-red">Crítica</span></div></div>
+            <div><span style="color:var(--text3);font-size:.75rem;text-transform:uppercase">Descrição</span><div style="color:var(--text2)">Problema de acesso ao sistema de ponto eletrônico.</div></div>
+            <div><span style="color:var(--text3);font-size:.75rem;text-transform:uppercase">Prazo</span><div style="color:var(--danger);font-weight:600">01/07/2025</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-title">Registrar Atualização</div>
+          <div class="form-group">
+            <label>Novo Status *</label>
+            <select><option>Aberta</option><option selected>Em andamento</option><option>Pendente de informação</option><option>Concluída</option></select>
+          </div>
+          <div class="form-group">
+            <label>Observação *</label>
+            <textarea style="min-height:80px">Iniciado diagnóstico remoto. Identificado conflito de credenciais no AD.</textarea>
+          </div>
+          <div class="form-group">
+            <label>Responsável</label>
+            <input type="text" value="Maria Santos" disabled style="background:var(--bg)"/>
+          </div>
+          <div style="background:var(--bg);border-radius:8px;padding:10px 14px;font-size:.78rem;color:var(--text3);margin-bottom:16px;">
+            📅 Registro automático: <strong style="color:var(--text2)">25/06/2025 14:32</strong>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-ghost" onclick="go('screen-dashboard-resp')">Cancelar</button>
+            <button class="btn btn-success" onclick="go('screen-dashboard-resp')">✓ Salvar Atualização</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="max-width:800px;margin-top:20px;">
+        <div class="section-title">Histórico de Atualizações</div>
+        <div class="timeline">
+          <div class="timeline-item"><div class="timeline-dot" style="background:var(--success)"></div><div class="timeline-line"></div><div><strong style="font-size:.85rem">Aberta</strong> <span style="font-size:.78rem;color:var(--text3)">— 24/06/2025 09:15 · Sistema</span><div style="font-size:.82rem;color:var(--text2);margin-top:2px">Solicitação registrada por João Silva.</div></div></div>
+          <div class="timeline-item"><div class="timeline-dot"></div><div><strong style="font-size:.85rem">Em andamento</strong> <span style="font-size:.78rem;color:var(--text3)">— 25/06/2025 14:32 · Maria Santos</span><div style="font-size:.82rem;color:var(--text2);margin-top:2px">Diagnóstico remoto iniciado.</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="screen-nav" id="screen-indicator">Tela 1/6 · Login</div>
+<div style="position:fixed;bottom:20px;left:20px;z-index:999;">
+  <button class="btn btn-outline btn-sm" onclick="togglePerfil()" style="background:white;font-size:.75rem">👤 Trocar perfil</button>
+</div>
+
+<script>
+  const screens=[
+    {id:'screen-login',label:'Tela 1/6 · Login'},
+    {id:'screen-dashboard-colab',label:'Tela 2/6 · Dashboard Colaborador'},
+    {id:'screen-form-solicitacao',label:'Tela 3/6 · Nova Solicitação'},
+    {id:'screen-confirma-protocolo',label:'Tela 4/6 · Confirmação de Protocolo'},
+    {id:'screen-dashboard-resp',label:'Tela 5/6 · Dashboard Responsável'},
+    {id:'screen-atualiza-status',label:'Tela 6/6 · Atualizar Status'},
+  ];
+  function go(id){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const s=screens.find(x=>x.id===id);
+    if(s)document.getElementById('screen-indicator').textContent=s.label;
+    window.scrollTo(0,0);
+  }
+  function togglePerfil(){
+    const active=document.querySelector('.screen.active').id;
+    if(['screen-login','screen-dashboard-colab','screen-form-solicitacao','screen-confirma-protocolo'].includes(active)){go('screen-dashboard-resp');}
+    else{go('screen-dashboard-colab');}
+  }
+</script>
+</body>
+</html>
